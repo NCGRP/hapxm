@@ -1,0 +1,25 @@
+hapxm identifies microhaploblock variation in bam files
+
+In working folder:
+1) A bam file containing sequences mapped by 'hapx -mb'
+2) A line delimited list of target sites
+
+Requirements (in path):
+1) samtools (hapxm calls samtools view/tview)
+3) GNU parallel
+
+Usage: hapxm -b bam -o out [-F exc] [-q qual] -s sites
+where,
+bam = path to bam file of reads aligned to ref [required]
+out = name of directory for output files, not a path, will be created in current directory
+sites = path to file containing genomic positions to use [required]
+     Provide a line delimited list of the form contigname:site-range like:
+         jcf7180008454378:303-303
+         jcf7180008531951:495-495
+     which specifies bp 303 of the contig named "jcf7180008454378" and bps 495-495 of contig "jcf7180008531951".
+     For now, hapxm has only been tested to handle single bp "ranges".
+exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]
+qual = Samtools view -q option (minimum mapping quality of included reads) [default=60, don't use 0 use 1 instead, 0 is poorly defined]
+
+Examples: 
+
