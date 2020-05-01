@@ -211,7 +211,7 @@ if [[ "$debug" == "YES" ]]; then echo "$mhends3" > "$pd"/mhendstiled.txt; fi;
 echo "contig mhstart numseq numalleles mhlength counts freqs alleleseqs" >> "$log"; #add header for output table to log
 report=$(echo "$mhends3" | parallel --sshloginfile /home/reevesp/machines --env bam --env debug \
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
-sort -t' ' -k1,1 -k2,2n <<<"$report";
+report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
 echo "$report" >> "$log";
 
 
