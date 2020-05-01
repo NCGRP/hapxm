@@ -72,8 +72,8 @@ mygetends() {
               
               
               
-              YOU ARE HERE, working on expanding the cigar string
-              echo $cig | sed 's:\([DIMSX=]\):\1\n:g' | sed '/^$/d' | awk -F[[:alpha:]] '{print $1}'
+#              YOU ARE HERE, working on expanding the cigar string
+#              echo $cig | sed 's:\([DIMSX=]\):\1\n:g' | sed '/^$/d' | awk -F[[:alpha:]] '{print $1}'
 }
 export -f mygetends;
 
@@ -90,13 +90,13 @@ myevalmicrohaps() {
                   
                   
                   
-                  export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;                  
+                  #export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;                  
 
 
 
 
 
-                  export COLUMNS="$col"; /share/apps/samtools tview -dC -p "$contig":"$mhstart" "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;                  
+                  #export COLUMNS="$col"; /share/apps/samtools tview -dC -p "$contig":"$mhstart" "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;                  
 }
 export -f myevalmicrohaps;
 
@@ -176,8 +176,33 @@ echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
 mhends=$(echo "$e" | parallel --sshloginfile /home/reevesp/machines --env stq --env stF --env bam --env mygetends mygetends);
-mhends=$(sort -t'-' -k1,1n <<<"$mhends");
 if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
+#sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
+mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5);
+
+#extract longest haploblocks across the tiling array
+#for microhaploblock ranges with the same start point, keep the longest one (which is the last with current sort order)
+mhrstart=$(cut -d' ' -f4 <<<"$mhends1" | sort -u | tr '\n' ' '); #unique microhaploblock range start
+mhends2=$(for i in $mhrstart;
+  do awk -F' ' -v i=$i '$4==i{print $0}' <<<"$mhends1" | tail -1;
+  done;)
+
+#for microhaploblock ranges with the same start point, keep the longest one (which is the first one with current sort order)
+mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -u | tr '\n' ' '); #unique microhaploblock range end
+mhends3=$(for i in $mhrend;
+  do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | head -1;
+  done;)
+
+
+mhends=$(sort -t':' -k1,1 <<<"$mhends" | sort -t'-' -k2,2n | sort -u -t' ' -k2,2 | awk -F[' '-:] '{print $1, $4, $0}'| sort -t' ' -k1,1 -k2,2n | cut -d' ' -f3-);
+mhends=$(echo "$mhends" | sed 's/[:-]/ /g' | sort -t' ' -u -k1,1 -k4,5n -uk4,5 -k4,4n |           sort -t':' -k1,1 <<<"$mhends" | sort -t'-' -k2,2n | sort -u -t' ' -k2,2 | awk -F[' '-:] '{print $1, $4, $0}'| sort -t' ' -k1,1 -k2,2n | cut -d' ' -f3-);
+
+echo "$mhends" | sed 's/[:-]/ /g' | sort -t' ' -k1,1 -k2,2n | sort -u -t' ' -k4,5 | md5sum
+echo "$mhends" | sed 's/[:-]/ /g' | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5 | md5sum
+
+if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhendssorted.txt; fi;
+#determine path through contig that maximizes
+
 
 #count microhaploblock alleles at each microhaploblock locus
 echo "$mhends" | parallel --sshloginfile /home/reevesp/machines --env bam --env myevalmicrohaps myevalmicrohaps;
