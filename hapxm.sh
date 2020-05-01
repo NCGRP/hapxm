@@ -69,34 +69,34 @@ mygetends() {
               
               #report microhaplotype range to calling statement
               echo "$contig:$lesr-$resr $le-$re "$(( $re - $le + 1 ));
-              
-              
-              
-#              YOU ARE HERE, working on expanding the cigar string
-#              echo $cig | sed 's:\([DIMSX=]\):\1\n:g' | sed '/^$/d' | awk -F[[:alpha:]] '{print $1}'
 }
 export -f mygetends;
 
 #myevalmicrohaps() takes the accounting of microhaplotype spans from mygetends() and calculates
 #the number of alleles at each microhaplotype locus
 myevalmicrohaps() {
-                  i=$1; #incoming is "contig:site-range microhaploblockrange microhaploblocklength" like "51jcf7180007742276:11500-11500 11498-11500 3"
+                  i=$1; #incoming is "contig lesite resite lemhrange remhrange mhlength" like "51jcf7180007742276 11434 11434 11431 11440 10"
                  
-                  contig=$(cut -d: -f1 <<<"$i"); #name of contig
-                  col1=$(cut -d' ' -f3 <<<"$i"); #length of microhaploblock, may be used as number of columns for samtools tview to print
-                  if [[ $col1 < 10 ]]; then col=10; else col=col1; fi; #shell variable $COLUMNS cannot be lower than 10
-                  mhstart=$(cut -d' ' -f2 <<<"$i" | cut -d'-' -f1); #start position of microhaploblock 
+                  contig=$(cut -d' ' -f1 <<<"$i"); #name of contig
+                  col1=$(cut -d' ' -f6 <<<"$i"); #length of microhaploblock, may be used as number of columns for samtools tview to print
+                  if [[ $col1 < 10 ]]; then col=10; else col="$col1"; fi; #shell variable $COLUMNS cannot be lower than 10
+                  mhstart=$(cut -d' ' -f4 <<<"$i" | cut -d'-' -f1); #start position of microhaploblock 
                   
+                  #use samtools tview to display microhaplotypes
+                  mh=$(export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
+                      tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
+                      sort | uniq -c | sed 's/^ *//');                  
+                  if [[ "$keepsingl" == NO ]];
+                  then mh=$(grep -v ^"1 " <<<"$mh");
+                  fi;
                   
-                  
-                  
-                  #export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;                  
-
-
-
-
-
-                  #export COLUMNS="$col"; /share/apps/samtools tview -dC -p "$contig":"$mhstart" "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;                  
+                  #assemble output string and report to parallel statement
+                  numseq=$(cut -d' ' -f1 <<<"$mh" | awk '{s+=$1} END {print s}'); #total number of sequences considered
+                  numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
+                  mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
+                  freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
+                  alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
+                  report=$(echo "$contig $mhstart $numseq $numalleles $col1 $counts $freqs $alleleseqs";
 }
 export -f myevalmicrohaps;
 
@@ -110,6 +110,8 @@ export -f myevalmicrohaps;
 #sites, genomic regions to use
 stF=2048; #samtools view -F option, see https://broadinstitute.github.io/picard/explain-flags.html
 stq=1; #samtools view -q option
+debug=NO;
+keepsingl=NO;
 
 #acquire command line variables
 POSITIONAL=()
@@ -147,6 +149,10 @@ case $key in
     debug=YES
     shift # past argument
     ;;
+    -ks)
+    keepsingl=YES
+    shift # past argument
+    ;;
     *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
@@ -162,6 +168,8 @@ e=$(cat "$sites"); #content of file $sites
 export stF; 
 export stq;
 export bam;
+export debug;
+export keepsingl;
 
 #log
 log="$outfol"/hapxmlog.txt;
@@ -172,13 +180,16 @@ echo "Alignment file (bam): $bam" >> "$log";
 echo "Target sites: $sites" >> "$log";
 echo "samtools view -F $stF" >> "$log";
 echo "samtools view -q $stq" >> "$log";
+echo "Keep singletons: $keepsingl" >> "$log";
+echo "Debug on: $debug" >> "$log";
 echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
-mhends=$(echo "$e" | parallel --sshloginfile /home/reevesp/machines --env stq --env stF --env bam --env mygetends mygetends);
+mhends=$(echo "$e" | parallel --sshloginfile /home/reevesp/machines --env stq --env stF --env bam --env debug --env mygetends mygetends);
 if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
 #sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
 mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5);
+if [[ "$debug" == "YES" ]]; then echo "$mhends1" > "$pd"/mhendssorted.txt; fi;
 
 #extract longest haploblocks across the tiling array
 #for microhaploblock ranges with the same start point, keep the longest one (which is the last with current sort order)
@@ -193,19 +204,15 @@ mhends3=$(for i in $mhrend;
   do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | head -1;
   done;)
 
-
-mhends=$(sort -t':' -k1,1 <<<"$mhends" | sort -t'-' -k2,2n | sort -u -t' ' -k2,2 | awk -F[' '-:] '{print $1, $4, $0}'| sort -t' ' -k1,1 -k2,2n | cut -d' ' -f3-);
-mhends=$(echo "$mhends" | sed 's/[:-]/ /g' | sort -t' ' -u -k1,1 -k4,5n -uk4,5 -k4,4n |           sort -t':' -k1,1 <<<"$mhends" | sort -t'-' -k2,2n | sort -u -t' ' -k2,2 | awk -F[' '-:] '{print $1, $4, $0}'| sort -t' ' -k1,1 -k2,2n | cut -d' ' -f3-);
-
-echo "$mhends" | sed 's/[:-]/ /g' | sort -t' ' -k1,1 -k2,2n | sort -u -t' ' -k4,5 | md5sum
-echo "$mhends" | sed 's/[:-]/ /g' | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5 | md5sum
-
-if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhendssorted.txt; fi;
-#determine path through contig that maximizes
+if [[ "$debug" == "YES" ]]; then echo "$mhends3" > "$pd"/mhendstiled.txt; fi;
 
 
-#count microhaploblock alleles at each microhaploblock locus
-echo "$mhends" | parallel --sshloginfile /home/reevesp/machines --env bam --env myevalmicrohaps myevalmicrohaps;
+#count microhaploblock alleles at minimal tiling path microhaploblock loci
+echo "contig mhstart numseq numalleles mhlength counts freqs alleleseqs" >> "$log"; #add header for output table to log
+report=$(echo "$mhends3" | parallel --sshloginfile /home/reevesp/machines --env bam --env debug \
+    --env keepsingl --env myevalmicrohaps myevalmicrohaps);
+sort -t' ' -k1,1 -k2,2n <<<"$report";
+echo "$report" >> "$log";
 
 
 
