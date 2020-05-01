@@ -96,7 +96,7 @@ myevalmicrohaps() {
                   mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
                   freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
                   alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
-                  report=$(echo "$contig $mhstart $numseq $numalleles $col1 $counts $freqs $alleleseqs";
+                  echo "$contig $mhstart $numseq $numalleles $col1 $counts $freqs $alleleseqs"; #report result to parallel statement
 }
 export -f myevalmicrohaps;
 
