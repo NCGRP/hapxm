@@ -92,6 +92,8 @@ myevalmicrohaps() {
                   
                   #assemble output string and report to parallel statement
                   numseq=$(cut -d' ' -f1 <<<"$mh" | awk '{s+=$1} END {print s}'); #total number of sequences considered
+                  if [[ "$numseq" == 0 ]]; then echo "$mhstart divides by zero"; fi;
+                  
                   numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
                   mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
                   freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele

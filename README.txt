@@ -27,3 +27,6 @@ qual = Samtools view -q option (minimum mapping quality of included reads) [defa
 Examples: hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
             -o hxm1 -db -s <(for i in $(seq 11423 1 11500); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 
+hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+            -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+
