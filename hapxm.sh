@@ -90,8 +90,12 @@ myevalmicrohaps() {
                   then mh=$(grep -v ^"1 " <<<"$mh");
                   fi;
                   
+                  #if no sequences are retained after removing singletons, or none exist, bounce out of this locus
+                  if [[ "$mh" == "" ]]; then return; fi;
+                  
                   #assemble output string and report to parallel statement
                   numseq=$(cut -d' ' -f1 <<<"$mh" | awk '{s+=$1} END {print s}'); #total number of sequences considered
+                  
                   if [[ "$numseq" == 0 ]]; then echo "$mhstart divides by zero"; fi;
                   
                   numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
