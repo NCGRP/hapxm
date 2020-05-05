@@ -81,6 +81,7 @@ myevalmicrohaps() {
                   col1=$(cut -d' ' -f6 <<<"$i"); #length of microhaploblock, may be used as number of columns for samtools tview to print
                   if [[ $col1 < 10 ]]; then col=10; else col="$col1"; fi; #shell variable $COLUMNS cannot be lower than 10
                   mhstart=$(cut -d' ' -f4 <<<"$i" | cut -d'-' -f1); #start position of microhaploblock 
+                  mhend=$(cut -d' ' -f5 <<<"$i" | cut -d'-' -f1); #end position of microhaploblock 
                   
                   #use samtools tview to display microhaplotypes
                   mh=$(export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
@@ -93,16 +94,17 @@ myevalmicrohaps() {
                   #if no sequences are retained after removing singletons, or none exist, bounce out of this locus
                   if [[ "$mh" == "" ]]; then return; fi;
                   
+                  #sort $mh to present alleles by decreasing frequency
+                  mh=$(echo "$mh" | sort -t' ' -k1,1nr);
+                  
                   #assemble output string and report to parallel statement
                   numseq=$(cut -d' ' -f1 <<<"$mh" | awk '{s+=$1} END {print s}'); #total number of sequences considered
-                  
-                  if [[ "$numseq" == 0 ]]; then echo "$mhstart divides by zero"; fi;
                   
                   numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
                   mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
                   freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
                   alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
-                  echo "$contig $mhstart $numseq $numalleles $col1 $counts $freqs $alleleseqs"; #report result to parallel statement
+                  echo '#'"$contig $mhstart $mhend $col1 $numseq $numalleles $mhcounts $freqs $alleleseqs"; #report result to parallel statement
 }
 export -f myevalmicrohaps;
 
@@ -118,6 +120,7 @@ stF=2048; #samtools view -F option, see https://broadinstitute.github.io/picard/
 stq=1; #samtools view -q option
 debug=NO;
 keepsingl=NO;
+useuserranges=NO;
 
 #acquire command line variables
 POSITIONAL=()
@@ -151,6 +154,12 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    -u)
+    useuserranges="YES"
+    userrangefile="$2"
+    shift # past argument
+    shift # past value
+    ;;
     -db)
     debug=YES
     shift # past argument
@@ -171,6 +180,10 @@ pd=$(pwd)"/$outfol"; export pd; #path to working directory
 if [ ! -d "$pd" ]; then mkdir "$pd"; fi; #make the working directory if not already existing
 
 e=$(cat "$sites"); #content of file $sites
+if [[ "$useuserranges" == "YES" ]];
+then u=$(cat "$userrangefile"); #content of file $userrange
+fi;
+
 export stF; 
 export stq;
 export bam;
@@ -186,6 +199,8 @@ echo "Alignment file (bam): $bam" >> "$log";
 echo "Target sites: $sites" >> "$log";
 echo "samtools view -F $stF" >> "$log";
 echo "samtools view -q $stq" >> "$log";
+echo "Use user-defined ranges: $useuserranges" >> "$log";
+if [[ "$useuserranges" == "YES" ]]; then echo "User-defined ranges: $userrangefile" >> "$log"; fi;
 echo "Keep singletons: $keepsingl" >> "$log";
 echo "Debug on: $debug" >> "$log";
 echo >> "$log";
@@ -212,9 +227,14 @@ mhends3=$(for i in $mhrend;
 
 if [[ "$debug" == "YES" ]]; then echo "$mhends3" > "$pd"/mhendstiled.txt; fi;
 
+#if user has supplied microhaploblock ranges by invoking the -u option, substitute those
+#for $mhends3 here
+if [[ "$useuserranges" == "YES" ]];
+then mhends3="$u";
+fi;
 
 #count microhaploblock alleles at minimal tiling path microhaploblock loci
-echo "contig mhstart numseq numalleles mhlength counts freqs alleleseqs" >> "$log"; #add header for output table to log
+echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$log"; #add header for output table to log
 report=$(echo "$mhends3" | parallel --sshloginfile /home/reevesp/machines --env bam --env debug \
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
 report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
