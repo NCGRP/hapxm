@@ -92,18 +92,19 @@ myevalmicrohaps() {
                   fi;
                   
                   #if no sequences are retained after removing singletons, or none exist, bounce out of this locus
-                  if [[ "$mh" == "" ]]; then return; fi;
+                  #if [[ "$mh" == "" ]]; then return; fi;
+                  if [[ "$mh" == "" ]];
+                  then numseq=0; numalleles=0; mhcounts=0; freqs=0; alleleseqs="";
+                  else mh=$(echo "$mh" | sort -t' ' -k1,1nr); #sort $mh to present alleles by decreasing frequency
                   
-                  #sort $mh to present alleles by decreasing frequency
-                  mh=$(echo "$mh" | sort -t' ' -k1,1nr);
+                    #assemble output string and report to parallel statement
+                    numseq=$(cut -d' ' -f1 <<<"$mh" | awk '{s+=$1} END {print s}'); #total number of sequences considered
                   
-                  #assemble output string and report to parallel statement
-                  numseq=$(cut -d' ' -f1 <<<"$mh" | awk '{s+=$1} END {print s}'); #total number of sequences considered
-                  
-                  numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
-                  mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
-                  freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
-                  alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
+                    numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
+                    mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
+                    freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
+                    alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
+                  fi;
                   echo '#'"$contig $mhstart $mhend $col1 $numseq $numalleles $mhcounts $freqs $alleleseqs"; #report result to parallel statement
 }
 export -f myevalmicrohaps;
