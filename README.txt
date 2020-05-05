@@ -47,3 +47,62 @@ for i in $(seq 50 1 55);
             -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
   done;
 
+
+
+#Postprocessing
+#determine microhaploblock major alleles that differ between pools
+rhead=$(grep ^"#" hxm50onhxm1/hapxmlog.txt | cut -d' ' -f1-4);
+head=$(head -1 <<<"$rhead");
+rhead=$(tail -n +2 <<<"$rhead");#remove col head from row heads
+
+outmajall="";
+outmajfreq="";
+for i in $(seq 50 1 55);
+  do majall=$(grep ^"#" hxm"$i"onhxm1/hapxmlog.txt | tail -n +2 | cut -d' ' -f9 | cut -d: -f1); #extract the allele with highest frequency
+    majfreq=$(grep ^"#" hxm"$i"onhxm1/hapxmlog.txt | tail -n +2 | cut -d' ' -f8 | cut -d: -f1); #extract the frequency of the major allele
+    outmajall=$(paste -d: <(echo "$outmajall") <(echo "$majall"));
+    outmajfreq=$(paste -d: <(echo "$outmajfreq") <(echo "$majfreq"));
+  done;
+outmajall=$(sed 's/^://' <<<"$outmajall"); #remove leading colon
+outmajfreq=$(sed 's/^://' <<<"$outmajfreq"); #remove leading colon
+
+#recode mhblocks from DNA sequence to integers
+set -f; #you have to undo globbing before running this command since some values are solely asterisks
+outrecode="";
+while read l;
+do a=$(echo "$l" | tr ':' '\n' | sort -u); #list containing DNA sequences of alleles
+  #a=$(echo "$l" | tr ':' '\n' | sort -u | sed 's/^/"/' | sed 's/$/"/'); #list containing DNA sequences of alleles
+  j=1; #numeric allele name
+  ll="$l";
+  if [[ "$a" == "" ]];
+  then outrecode+="$l"$'\n'; #deal with mhloci with no alleles by placing :::::
+  else
+    for aa in $a; 
+      do ll=${ll//"$aa"/"$j"}; #built-in bash replace obviates need to escape asterisks using sed
+        #ll=$(sed 's/'"$aa"'/'$j'/g' <<<"$ll");
+        j=$(( $j + 1 ));
+      done;
+     outrecode+="$ll"$'\n';
+  fi;
+done <<<"$outmajall";
+outrecode=$(sed '/^$/d' <<<"$outrecode"); #remove terminal blank line
+set +f; #redo globbing
+
+
+#assemble output
+outp1=$(paste -d' ' <(echo "$rhead") <(echo "$outmajall") <(echo "$outrecode") <(echo "$outmajfreq")); #add row header to major allele list
+
+#find all mh loci with different major alleles, label those rows with @
+outp2="";
+outp2=$(while read l;
+do a=$(echo "$l" | cut -d' ' -f5 | tr ':' '\n'| sed '/^$/d' | sort | uniq | wc -l);
+  if [[ "$a" > 1 ]];
+  then echo "@$l";
+  else echo "$l"
+  fi;
+done <<<"$outp1";
+);
+
+
+
+
