@@ -220,7 +220,7 @@ mhends2=$(for i in $mhrstart;
   do awk -F' ' -v i=$i '$4==i{print $0}' <<<"$mhends1" | tail -1;
   done;)
 
-#for microhaploblock ranges with the same start point, keep the longest one (which is the first one with current sort order)
+#for microhaploblock ranges with the same end point, keep the longest one (which is the first one with current sort order)
 mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -u | tr '\n' ' '); #unique microhaploblock range end
 mhends3=$(for i in $mhrend;
   do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | head -1;

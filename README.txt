@@ -70,20 +70,19 @@ outmajfreq=$(sed 's/^://' <<<"$outmajfreq"); #remove leading colon
 set -f; #you have to undo globbing before running this command since some values are solely asterisks
 outrecode="";
 while read l;
-do a=$(echo "$l" | tr ':' '\n' | sort -u); #list containing DNA sequences of alleles
-  #a=$(echo "$l" | tr ':' '\n' | sort -u | sed 's/^/"/' | sed 's/$/"/'); #list containing DNA sequences of alleles
+do m=$(echo "$l" | tr ':' '\n' | sed 's/^$/0/' | tr '\n' ':' | sed 's/:$//'); #substitute 0 when no allele was found
+  a=$(echo "$m" | tr ':' '\n' | sort -u | grep -v 0); #list containing DNA sequences of alleles, excluding 0 (missing)
   j=1; #numeric allele name
-  ll="$l";
-  if [[ "$a" == "" ]];
-  then outrecode+="$l"$'\n'; #deal with mhloci with no alleles by placing :::::
-  else
+  ll="$m";
+  #if [[ "$a" == "" ]];
+  #then outrecode+="$l"$'\n'; #deal with mhloci with no alleles by placing :::::
+  #else
     for aa in $a; 
       do ll=${ll//"$aa"/"$j"}; #built-in bash replace obviates need to escape asterisks using sed
-        #ll=$(sed 's/'"$aa"'/'$j'/g' <<<"$ll");
         j=$(( $j + 1 ));
       done;
      outrecode+="$ll"$'\n';
-  fi;
+  #fi;
 done <<<"$outmajall";
 outrecode=$(sed '/^$/d' <<<"$outrecode"); #remove terminal blank line
 set +f; #redo globbing
@@ -103,6 +102,48 @@ do a=$(echo "$l" | cut -d' ' -f5 | tr ':' '\n'| sed '/^$/d' | sort | uniq | wc -
 done <<<"$outp1";
 );
 
+#write out the summary
+echo "$outp2" > hxmsummary.txt;
+
+#for fun, display differing loci horizontally (this looks like a PAUP input matrix)
+echo "$outp2" | grep ^@ | cut -d' ' -f6 | \
+    awk -F':' '{for (f=1;f<=NF;f++) col[f] = col[f]$f} END {for (f=1;f<=NF;f++) print col[f]}';
 
 
 
+#create input files for the R routine MicrohaploblockHeatmap.r
+c=$(echo "$outp2" | cut -d' ' -f2-8); #get mhstart mhend mhlength seqs majalleles freqs for all mh majalleles
+d=$(echo "$outp2" | grep ^@ | cut -d' ' -f2-8); #get mhstart mhend mhlength seqs majalleles freqs for mh majalleles that differ between pops
+
+for k in "$c" "$d";
+  do hdr="pop mhstart mhend length majallele freq seq";
+    e="";
+    while read l;
+      do sqc=$(echo "$l" | cut -d' ' -f4); #allele sequence column
+        mac=$(echo "$l" | cut -d' ' -f5); #major alleles column
+        frc=$(echo "$l" | cut -d' ' -f6); #frequencies column
+        j=1; #j indexes position in horizontal allele calls and freqs
+        for i in $(seq 50 1 55);
+          do rhead=$(echo -n "$i ";echo "$l" | cut -d' ' -f1-3); #row header labeled by population name
+            sq=$(echo "$sqc" | cut -d: -f$j); #allele sequence for population $i
+            ma=$(echo "$mac" | cut -d: -f$j); #major allele for population $i
+            fr=$(echo "$frc" | cut -d: -f$j); #major allele frequency for population $i
+            e+="$rhead $ma $fr $sq"$'\n';
+    
+            j=$(( $j + 1 ));
+          done;
+      done<<<"$k";
+    e=$(sed '/^$/d' <<<"$e");
+    e="$hdr"$'\n'"$e";
+    
+    
+    if [[ "$k" == "$c" ]];
+    then echo "$e" | tr ' ' '\t' > hxmsummaryRinAll.txt;
+    elif [[ "$k" == "$d" ]]; 
+    then echo "$e" | tr ' ' '\t' > hxmsummaryRinDiff.txt;
+    fi;
+  done;
+  
+  
+  
+  
