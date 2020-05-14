@@ -15,7 +15,7 @@ out = name of directory for output files, not a path, will be created in current
 sites = path to file containing genomic positions to use [required]
      Provide a line delimited list of the form contigname:site-range like:
          jcf7180008454378:303-303
-         jcf7180008454378::495-495
+         jcf7180008454378:495-495
      which specifies bp 303 of the contig named "jcf7180008454378" and bps 495-495 of contig "jcf7180008454378:".
      For now, hapxm has only been tested to handle single bp "ranges" within 1 contig.
 exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]
@@ -31,7 +31,7 @@ userrange = path to a file containing user-defined microhaploblock ranges of the
 -ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)
 
 Examples: hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
-            -o hxm1 -db -s <(for i in $(seq 11423 1 11500); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+            -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 
 hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
             -o hxm1singl -db -ks -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
@@ -144,6 +144,54 @@ for k in "$c" "$d";
     fi;
   done;
   
-  
-  
-  
+
+#create input files for adegenet genpop object
+myga() {
+       i=$1; #$i is a mh span like "10981 10987"
+       b=$(grep "$i" "$pd"/hxm5[0-5]onhxm1/hapxmlog.txt); #lines of mh locus from all pools
+       c=$(echo "$b" | cut -d' ' -f1,7,9 | awk -F' ' '{gsub("*","Z",$3); print $0}'); #isolate read count and sequence, substitute 'Z' for '*'
+       u=$(echo "$c" | cut -d' ' -f3 | tr ':' ' ' | tr ' ' '\n' | sort | uniq | tr '\n' ' '); #unique alleles for mh locus
+       nu=$(echo "$u" | awk -F' ' '{print NF}'); #number of unique alleles
+       an=""; #allele names
+       for z in $(seq 1 1 "$nu");
+         do an="$an "$(echo "$i" | tr ' ' '_')".$z";
+         done;
+       an=$(echo "$an" | sed 's/^ //'); #remove leading space
+       
+       toparallel=$(
+         echo "$an";
+         while read ll;
+         do e=$(echo "$ll" | cut -d' ' -f2 | tr ':' '\n');
+           f=$(echo "$ll" | cut -d' ' -f3 | tr ':' '\n'); #replace * with Z, asterisks are a pain
+           g=$(paste -d' ' <(echo "$f") <(echo "$e")); #paste like "seq count" for each allele in this pool
+
+           k=""
+           for j in $u;
+             do h=$(echo "$g" | grep ^"$j " | cut -d' ' -f2); #get count of current allele
+               if [[ $h == "" ]]; then h=0; fi; #set count to zero if allele not present in pool
+               k="$k $h"; #add count
+             done;
+           echo "$k" | sed 's/^ //';
+         done <<<"$c";
+       );
+
+       echo "$toparallel" \
+           | awk -F' ' '{for (f=1;f<=NF;f++) col[f] = col[f]" "$f} END {for (f=1;f<=NF;f++) print col[f]}' \
+           | sed 's/^ //'; #awk transpose and report, eliminate extra space in front
+ 
+}
+export -f myga;
+
+#gather list of microhaplotype loci
+cd /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem;
+pd=$(pwd); export pd;
+a=$(grep ^# hxm5*onhxm1/hapxmlog.txt | grep -v "mhstart mhend" | cut -d' ' -f2,3 | sort -t' ' -k1,1n | uniq);
+b=$(echo "$a" | parallel --keep-order --env pd --env myga myga;)
+
+#rotate matrix and add pool names
+rh="pop"$'\n'$(seq 50 1 55); $row header
+tp=$(echo "$b" | awk -F' ' '{for (f=1;f<=NF;f++) col[f] = col[f]" "$f} END {for (f=1;f<=NF;f++) print col[f]}' | sed 's/^ //');
+tpm=$(paste -d' ' <(echo "$rh") <(echo "$tp"));
+
+#write result
+echo "$tpm" > AdegenetGenpopImport.txt;
