@@ -112,8 +112,6 @@ export -f myevalmicrohaps;
 ### END SUBROUTINES ###
 
 
-
-
 #define variables and establish defaults
 #bam, path to the bam file containing the alignment of reads to ref
 #sites, genomic regions to use
@@ -240,67 +238,3 @@ report=$(echo "$mhends3" | parallel --sshloginfile /home/reevesp/machines --env 
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
 report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
 echo "$report" >> "$log";
-
-
-
-#    YOU ARE HERE
-#    #called like: 
-#    #mhends=$( (for i in $(seq 11423 1 11500); do echo 51jcf7180007742276:"$i"-"$i"; done;) \
-#    #  | parallel --sshloginfile /home/reevesp/machines --env stq --env bam --env mygetends mygetends );
-#    #mhends=$(sort -t'-' -k1,1n <<<"$mhends");
-#    
-#    
-#    
-#    
-#    pd=$(pwd);
-#    bam=/share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam;
-#    export bam;
-#    
-#    mhends=$( (for i in $(seq 11423 1 11500); do echo 51jcf7180007742276:"$i"-"$i"; done;) \
-#      | parallel --sshloginfile /home/reevesp/machines --env stq --env bam --env mygetends mygetends );
-#    mhends=$(sort -t'-' -k1,1n <<<"$mhends");
-#    
-#    echo "$mhends" | parallel --sshloginfile /home/reevesp/machines --env bam --env myevalmicrohaps myevalmicrohaps;
-#    
-#    
-#    
-#    export COLUMNS=200; samtools tview -dT -p 51jcf7180007742276:11491 "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;
-#    
-#    
-#    /share/apps/samtools view -F 2048 -q "$stq" -O BAM "$bam" "$i" 2>/dev/null > "$i".TMP.bam;
-#    samtools index "$i".TMP.bam 2>/dev/null;
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11434 "$i".TMP.bam | tail -n +4;
-#    
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11434 "$i".TMP.bam | tail -n +4 | sort | uniq -c;
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11431 "$i".TMP.bam | tail -n +4 | sort | uniq -c;
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11434 "$bam" | tail -n +4 | sort | uniq -c;
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11431 "$bam" | tail -n +4 | sort | uniq -c;
-#    
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11431 "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;
-#                   ^length from $mhends                         ^le from $mhends
-#    export COLUMNS=200; samtools tview -dT -p 51jcf7180007742276:11491 "$bam" | tail -n +4 | grep -v " " | sort | uniq -c;
-#    
-#    
-#    i=51jcf7180007742276:11434-11434;
-#    ii=51jcf7180007742276:11433-11433;
-#    /share/apps/samtools view -F 2048 -q "$stq" "$bam" "$i" 2>/dev/null > "$i".TMP.sam;
-#    /share/apps/samtools view -F 2048 -q "$stq" "$bam" "$ii" 2>/dev/null > "$ii".TMP.sam;
-#    
-#    
-#    /share/apps/samtools view -q "$stq" -O BAM "$bam" "$i" 2>/dev/null | \
-#      /share/apps/samtools fasta - 2>/dev/null | \
-#      /share/apps/bwa mem "$ref" - 2>/dev/null | \
-#      /share/apps/samtools sort -O BAM 2>/dev/null | \
-#      /share/apps/samtools view -F 2048 -q "$stq" -O BAM - "$i" 2>/dev/null | 
-#     This ^ not working. Trying to extract reads for le-re region, realign, then print microhaplotype with tview
-#    
-#    
-#    
-#    
-#    samtools tview -dT -p 51jcf7180007742276:11434 "$bam" | tail -n +3;
-#    samtools tview -dC -p 51jcf7180007742276:11434 "$i".TMP.bam | tail -n +4;
-#    
-#    export COLUMNS=10; samtools tview -dT --reference "$ref" -p 51jcf7180007742276:11434 "$bam" | less
-#    export COLUMNS=10; samtools tview -dT -p 51jcf7180007742276:11434 "$bam" | tail -n +3 | grep -v ^" " 
-#    
- 
