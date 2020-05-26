@@ -153,6 +153,11 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    -ssh)
+    ssh1="--sshloginfile $2"
+    shift # past argument
+    shift # past value
+    ;;
     -u)
     useuserranges="YES"
     userrangefile="$2"
@@ -205,7 +210,7 @@ echo "Debug on: $debug" >> "$log";
 echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
-mhends=$(echo "$e" | parallel --sshloginfile /home/reevesp/machines --env stq --env stF --env bam --env debug --env mygetends mygetends);
+mhends=$(echo "$e" | parallel $ssh1 --env stq --env stF --env bam --env debug --env mygetends mygetends);
 if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
 #sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
 mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5);
@@ -234,7 +239,7 @@ fi;
 
 #count microhaploblock alleles at minimal tiling path microhaploblock loci
 echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$log"; #add header for output table to log
-report=$(echo "$mhends3" | parallel --sshloginfile /home/reevesp/machines --env bam --env debug \
+report=$(echo "$mhends3" | parallel $ssh1 --env bam --env debug \
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
 report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
 echo "$report" >> "$log";
