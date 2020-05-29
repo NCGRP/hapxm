@@ -8,7 +8,7 @@ Requirements (in path):
 1) samtools (hapxm calls samtools view/tview)
 3) GNU parallel
 
-Usage: hapxm -b bam -o out [-F exc] [-q qual]  [-u userrange] [-db -ks] -s sites
+Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks] -s sites
 where,
 bam = path to bam file of reads aligned to ref [required]
 out = name of directory for output files, not a path, will be created in current directory
@@ -20,6 +20,7 @@ sites = path to file containing genomic positions to use [required]
      For now, hapxm has only been tested to handle single bp "ranges" within 1 contig.
 exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]
 qual = Samtools view -q option (minimum mapping quality of included reads) [default=1, don't use 0 use >=1 instead, 0 is poorly defined]
+mach = path to "machines" file for the gnu parallel command --sshloginfile, forces distribution across nodes
 userrange = path to a file containing user-defined microhaploblock ranges of the form
      "contig lesite resite lemh remh mhlength" where 'lesite' is left end of the target range
      in the genome, 'remh' is the right end of the microhaploblock locus, and 'mhlength' is the
