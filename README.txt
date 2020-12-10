@@ -23,12 +23,14 @@ qual = Samtools view -q option (minimum mapping quality of included reads) [defa
 mach = path to "machines" file for the gnu parallel command --sshloginfile, forces distribution across nodes
 userrange = path to a file containing user-defined microhaploblock ranges of the form
      "contig lesite resite lemh remh mhlength" where 'lesite' is left end of the target range
-     in the genome, 'remh' is the right end of the microhaploblock locus, and 'mhlength' is the
-     microhaploblock length (lesite and resite are unused by the algorithm so may be dummy values):
+     in the reference genome, 'remh' is the right end of the microhaploblock locus, and 'mhlength' is the
+     microhaploblock length (lesite and resite are unused by the algorithm so may be dummy values,
+     see also -db):
          51jcf7180007742276 11472 11472 11472 11474 3
          51jcf7180007742276 11493 11493 11491 11500 10
 
--db = debugging mode, save some internal data structures as files (may produce a lot of files)
+-db = debugging mode, save some internal data structures as files (may produce a lot of files).
+     Debug output files 'mhends[sorted,tiled].txt' are proper format for input using -u userrange
 -ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)
 
 Examples: hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \

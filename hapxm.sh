@@ -213,7 +213,7 @@ echo >> "$log";
 mhends=$(echo "$e" | parallel $ssh1 --env stq --env stF --env bam --env debug --env mygetends mygetends);
 if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
 #sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
-mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5);
+mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5n);
 if [[ "$debug" == "YES" ]]; then echo "$mhends1" > "$pd"/mhendssorted.txt; fi;
 
 #extract longest haploblocks across the tiling array
