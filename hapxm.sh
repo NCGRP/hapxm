@@ -124,6 +124,7 @@ stq=1; #samtools view -q option
 debug=NO;
 keepsingl=NO;
 useuserranges=NO;
+suppar=""; #suppress parallel contig extraction, default is allow GNU parallel --jobs equal to max, -sp switch will set $suppar to --jobs=1 for all parallel statements
 
 #acquire command line variables
 POSITIONAL=()
@@ -176,6 +177,10 @@ case $key in
     keepsingl=YES
     shift # past argument
     ;;
+    -sp)
+    suppar="--jobs 1";
+    shift # past argument
+    ;;
     *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
@@ -214,7 +219,7 @@ echo "Debug on: $debug" >> "$log";
 echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
-mhends=$(echo "$e" | parallel $ssh1 --env stq --env stF --env bam --env debug --env mygetends mygetends);
+mhends=$(echo "$e" | parallel $ssh1 $suppar --env stq --env stF --env bam --env debug --env mygetends mygetends);
 if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
 #sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
 mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5n);
@@ -243,7 +248,7 @@ fi;
 
 #count microhaploblock alleles at minimal tiling path microhaploblock loci
 echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$log"; #add header for output table to log
-report=$(echo "$mhends3" | parallel $ssh1 --env bam --env debug \
+report=$(echo "$mhends3" | parallel $ssh1 $suppar --env bam --env debug \
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
 report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
 echo "$report" >> "$log";
