@@ -30,7 +30,8 @@ mygetends() {
               #f=$(samtools view -q 1 Hs1pro1l1.finalaln.bam 51jcf7180007742276:"$i"-"$i" | cut -d$'\t' -f4 | sort -nr | head -1);
               
               #get LE and cigar string for each sequence
-              g=$(/share/apps/samtools view -F "$stF" -q "$stq" "$bam" "$i" | cut -d$'\t' -f4,6); #-F 2048 excludes supplementary alignments
+              g=$(samtools view -F "$stF" -q "$stq" "$bam" "$i" | cut -d$'\t' -f4,6); #-F 2048 excludes supplementary alignments
+              #g=$(/share/apps/samtools view -F "$stF" -q "$stq" "$bam" "$i" | cut -d$'\t' -f4,6); #-F 2048 excludes supplementary alignments
               if [[ "$g" == "" ]]; then return; fi; #bail out if there are no aligned reads at the position
               
               #calculate closest ends to left side of site range
@@ -84,9 +85,12 @@ myevalmicrohaps() {
                   mhend=$(cut -d' ' -f5 <<<"$i" | cut -d'-' -f1); #end position of microhaploblock 
                   
                   #use samtools tview to display microhaplotypes
-                  mh=$(export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
+                  mh=$(export COLUMNS="$col"; samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
                       tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
                       sort | uniq -c | sed 's/^ *//');                  
+                  #mh=$(export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
+                  #    tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
+                  #    sort | uniq -c | sed 's/^ *//');                  
                   if [[ "$keepsingl" == NO ]];
                   then mh=$(grep -v ^"1 " <<<"$mh");
                   fi;
