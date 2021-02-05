@@ -125,6 +125,7 @@ debug=NO;
 keepsingl=NO;
 useuserranges=NO;
 suppar=""; #suppress parallel contig extraction, default is allow GNU parallel --jobs equal to max, -sp switch will set $suppar to --jobs=1 for all parallel statements
+tilearry=NO;
 
 #acquire command line variables
 POSITIONAL=()
@@ -179,6 +180,10 @@ case $key in
     ;;
     -sp)
     suppar="--jobs 1";
+    shift # past argument
+    ;;
+    -ta)
+    tilearry=YES;
     shift # past argument
     ;;
     *)    # unknown option
@@ -237,18 +242,32 @@ mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un | tr '\n' ' '); #unique microhap
 mhends3=$(for i in $mhrend;
   do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | sort -t' ' -k4,4n | head -1;
   done;)
+mhends3=$(echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n); #sort $mhends3 nicely
 
-if [[ "$debug" == "YES" ]]; then echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n > "$pd"/mhendstiled.txt; fi;
+if [[ "$debug" == "YES" ]]; then echo "$mhends3" > "$pd"/mhendstiled.txt; fi;
+
+
 
 #if user has supplied microhaploblock ranges by invoking the -u option, substitute those
+#if user has elected to only process the short tiling array (-ta) use $mhends3
+#otherwise process all unique mhs
 #for $mhends3 here
+#if [[ "$useuserranges" == "YES" ]];
+#then mhends3="$u";
+#fi;
 if [[ "$useuserranges" == "YES" ]];
-then mhends3="$u";
+then mhendsin="$u";
+elif [[ "$tilearry" == "YES" ]];
+then mhendsin="$mhends3"; #short tiling array across all mhs
+else mhendsin="$mhends1"; #all unique mh ranges
 fi;
+
+
+
 
 #count microhaploblock alleles at minimal tiling path microhaploblock loci
 echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$log"; #add header for output table to log
-report=$(echo "$mhends3" | parallel $ssh1 $suppar --env bam --env debug \
+report=$(echo "$mhendsin" | parallel $ssh1 $suppar --env bam --env debug \
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
 report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
 echo "$report" >> "$log";
