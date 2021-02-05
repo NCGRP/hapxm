@@ -221,6 +221,7 @@ echo "Use user-defined ranges: $useuserranges" >> "$log";
 if [[ "$useuserranges" == "YES" ]]; then echo "User-defined ranges: $userrangefile" >> "$log"; fi;
 echo "Keep singletons: $keepsingl" >> "$log";
 echo "Debug on: $debug" >> "$log";
+echo "Use short tiling array: $tilearry" >> "$log";
 echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
