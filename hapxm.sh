@@ -222,7 +222,7 @@ echo >> "$log";
 mhends=$(echo "$e" | parallel $ssh1 $suppar --env stq --env stF --env bam --env debug --env mygetends mygetends);
 if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
 #sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
-mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5n);
+mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n);
 if [[ "$debug" == "YES" ]]; then echo "$mhends1" > "$pd"/mhendssorted.txt; fi;
 
 #extract longest haploblocks across the tiling array
@@ -238,7 +238,7 @@ mhends3=$(for i in $mhrend;
   do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | sort -t' ' -k4,4n | head -1;
   done;)
 
-if [[ "$debug" == "YES" ]]; then echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5n > "$pd"/mhendstiled.txt; fi;
+if [[ "$debug" == "YES" ]]; then echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n > "$pd"/mhendstiled.txt; fi;
 
 #if user has supplied microhaploblock ranges by invoking the -u option, substitute those
 #for $mhends3 here
