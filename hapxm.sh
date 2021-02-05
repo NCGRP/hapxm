@@ -227,18 +227,18 @@ if [[ "$debug" == "YES" ]]; then echo "$mhends1" > "$pd"/mhendssorted.txt; fi;
 
 #extract longest haploblocks across the tiling array
 #for microhaploblock ranges with the same start point, keep the longest one (which is the last with current sort order)
-mhrstart=$(cut -d' ' -f4 <<<"$mhends1" | sort -u | tr '\n' ' '); #unique microhaploblock range start
+mhrstart=$(cut -d' ' -f4 <<<"$mhends1" | sort -un | tr '\n' ' '); #unique microhaploblock range start
 mhends2=$(for i in $mhrstart;
-  do awk -F' ' -v i=$i '$4==i{print $0}' <<<"$mhends1" | tail -1;
+  do awk -F' ' -v i=$i '$4==i{print $0}' <<<"$mhends1" | sort -t' ' -k5,5n | tail -1;
   done;)
 
 #for microhaploblock ranges with the same end point, keep the longest one (which is the first one with current sort order)
-mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -u | tr '\n' ' '); #unique microhaploblock range end
+mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un | tr '\n' ' '); #unique microhaploblock range end
 mhends3=$(for i in $mhrend;
-  do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | head -1;
+  do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | sort -t' ' -k4,4n | head -1;
   done;)
 
-if [[ "$debug" == "YES" ]]; then echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5n > "$pd"/mhendstiled.txt; fi;
+if [[ "$debug" == "YES" ]]; then echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k4,5n > "$pd"/mhendstiledNEW2.txt; fi;
 
 #if user has supplied microhaploblock ranges by invoking the -u option, substitute those
 #for $mhends3 here
