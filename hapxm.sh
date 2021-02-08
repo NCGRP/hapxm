@@ -126,6 +126,7 @@ keepsingl=NO;
 useuserranges=NO;
 suppar=""; #suppress parallel contig extraction, default is allow GNU parallel --jobs equal to max, -sp switch will set $suppar to --jobs=1 for all parallel statements
 tilearry=NO;
+vartarray=NO;
 
 #acquire command line variables
 POSITIONAL=()
@@ -186,6 +187,10 @@ case $key in
     tilearry=YES;
     shift # past argument
     ;;
+    -va)
+    vartarry=YES;
+    shift # past argument
+    ;;
     *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
@@ -221,7 +226,8 @@ echo "Use user-defined ranges: $useuserranges" >> "$log";
 if [[ "$useuserranges" == "YES" ]]; then echo "User-defined ranges: $userrangefile" >> "$log"; fi;
 echo "Keep singletons: $keepsingl" >> "$log";
 echo "Debug on: $debug" >> "$log";
-echo "Use short tiling array: $tilearry" >> "$log";
+echo "Process short tiling array: $tilearry" >> "$log";
+echo "Process variable tiling array: $vartarry" >> "$log";
 echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
@@ -243,9 +249,7 @@ mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un | tr '\n' ' '); #unique microhap
 mhends3=$(for i in $mhrend;
   do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | sort -t' ' -k4,4n | head -1;
   done;)
-mhends3=$(echo "$mhends3" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n); #sort $mhends3 nicely
-
-if [[ "$debug" == "YES" ]]; then echo "$mhends3" > "$pd"/mhendstiled.txt; fi;
+mhends3=$(sort -t' ' -k1,1 -k4,4n <<<"$mhends3" | sort -u -t' ' -k1,1 -k4,4n -k5,5n); #sort $mhends3 nicely
 
 
 
@@ -260,15 +264,104 @@ if [[ "$useuserranges" == "YES" ]];
 then mhendsin="$u";
 elif [[ "$tilearry" == "YES" ]];
 then mhendsin="$mhends3"; #short tiling array across all mhs
-else mhendsin="$mhends1"; #all unique mh ranges
+  if [[ "$debug" == "YES" ]]; then echo "$mhends3" > "$pd"/mhendstiled.txt; fi;
+else mhendsin="$mhends1"; #all unique mh ranges, same as mhendssorted.txt
 fi;
 
-
-
-
-#count microhaploblock alleles at minimal tiling path microhaploblock loci
+#count microhaploblock alleles at specified microhaploblock loci
 echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$log"; #add header for output table to log
 report=$(echo "$mhendsin" | parallel $ssh1 $suppar --env bam --env debug \
     --env keepsingl --env myevalmicrohaps myevalmicrohaps);
 report=$(sort -t' ' -k1,1 -k2,2n <<<"$report"); #sort by mh start position
 echo "$report" >> "$log";
+
+
+
+#if user has elected to calculate and process a variable tiling array (-va), extract those from hapxmlog.txt,
+#identify mhs belonging to the variable tiling array and save to hapxmlogvar.txt
+#save the variable tiling array in -u userrange format when $debug==YES 
+if [[ "$vartarray" == "YES" ]];
+then logv="$outfol"/hapxmlogvar.txt;
+  grep -v^'#' "$log" > "$logv"; #add common header from hapxmlog.txt
+  echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$logv"; #add header for output table to log
+
+  a=$(grep ^'#' "$log" | awk -F' ' '$5>0{print $0}' | tail -n +2); #extract all lines with at least one mh called
+
+  #filter to retain only one mh per mhstart point
+  b=$(cut -d' ' -f2 <<<"$a" | sort -n | uniq -c | sed 's/^ *//'); #count the number of mhs per mhstart point
+  c=$(grep -v ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhstart with multiple mhs
+  d=$(grep ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhstart with only one mh
+  
+  #collect full hapxmlog.txt output line for each mh with a unique start point
+  dd=$(for i in $d;
+         do awk -F' ' -v i=$i '$2==i{print $0}' <<<"$a";
+         done;)
+         
+  #for mhs with the same mhstart, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
+  #if tie use max length ($4, maxlength), if tie choose at random
+  cc=$(for i in $c;
+    do e=$(awk -F' ' -v i=$i '$2==i{print $0}' <<<"$a" | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
+      
+      g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
+      j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
+      k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
+      l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
+      h=$(awk -F' ' -v j=$j -v k=$k -v l=$l '$4==j && $5==k && $6==l{print $0}' <<<"$a"); #collect full hapxmlog.txt output line(s) matching fields 4-6 for top entry
+
+      if (( $(wc -l <<<"$h") > 1 ));
+      then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
+      else echo "$h";
+      fi;     
+    done;)
+    
+  z=$(echo "$cc"$'\n'"$dd" | sort -t' ' -k2,2n -k3,3n); #transfer lines filtered for mhstart to starting variable
+
+
+  #starting with mhs with unique mhstart points, filter to retain only one mh per mhend point
+  b=$(cut -d' ' -f3 <<<"$z" | sort -n | uniq -c | sed 's/^ *//'); #count the number of mhs per mhend point
+  c=$(grep -v ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhend with multiple mhs
+  d=$(grep ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhend with only one mh
+  
+  #collect full hapxmlog.txt output line for each mh with a unique end point
+  dd=$(for i in $d;
+         do awk -F' ' -v i=$i '$3==i{print $0}' <<<"$z";
+         done;)
+         
+  #for mhs with the same mhend, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
+  #if tie use max length ($4, maxlength), if tie choose at random
+  cc=$(for i in $c;
+    do e=$(awk -F' ' -v i=$i '$3==i{print $0}' <<<"$z" | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhend
+      
+      g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
+      j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
+      k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
+      l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
+      h=$(awk -F' ' -v j=$j -v k=$k -v l=$l '$4==j && $5==k && $6==l{print $0}' <<<"$z"); #collect full hapxmlog.txt output line(s) matching fields 4-6 for top entry
+
+      if (( $(wc -l <<<"$h") > 1 ));
+      then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
+      else echo "$h";
+      fi;     
+    done;)
+    
+  #report to log
+  zz=$(echo "$cc"$'\n'"$dd" | sort -t' ' -k2,2n -k3,3n);
+  echo "$zz" >> "$logv";
+
+  #compute an input file for -u userrange if requested
+  if [[ "$debug" == "YES" ]];
+  then j=$(cut -d' ' -f2-3 <<<"$zz" | tr ' ' ':');#get list of mh ranges for variable tiling array
+    mhends4=$(for i in $j;
+                do k=$(cut -d: -f1 <<<"$i"); #mhstart
+                  l=$(cut -d: -f2 <<<"$i"); #mhend
+                  awk -F' ' -v k="$k" -v l="$l" '$4==k && $5==l{print $0}' <<<"$mhends1"; #echo the line corresponding to the the mh range retained in the variable tiling array
+                done;)
+    echo "$mhends4" > "$pd"/mhendsvar.txt;
+  fi; 
+fi; #vartarray
+
+
+
+
+
+

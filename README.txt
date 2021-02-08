@@ -8,7 +8,7 @@ Requirements (in path):
 1) samtools (hapxm calls samtools view/tview)
 3) GNU parallel
 
-Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta] -s sites
+Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta -va] -s sites
 where,
 bam = path to bam file of reads aligned to ref [required]
 out = name of directory for output files, not a path, will be created in current directory
@@ -33,7 +33,8 @@ userrange = path to a file containing user-defined microhaploblock ranges of the
      Debug output files 'mhends[sorted,tiled].txt' are proper format for input using -u userrange
 -ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)
 -sp = suppress parallel processing (sets GNU parallel --jobs=1)
--ta = process a short tiling array across -s sites (suppressed by -u userrange)
+-ta = calculate and then process a short tiling array across -s sites (suppressed by -u userrange)
+-va = calculate and then process a variable tiling array across -s sites (results written to hapxmlogvar.txt)
 
 Examples: hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
             -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
