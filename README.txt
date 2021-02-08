@@ -34,7 +34,10 @@ userrange = path to a file containing user-defined microhaploblock ranges of the
 -ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)
 -sp = suppress parallel processing (sets GNU parallel --jobs=1)
 -ta = calculate and then process a short tiling array across -s sites (suppressed by -u userrange)
--va = calculate and then process a variant-rich tiling array across -s sites (results written to hapxmlogvar.txt)
+-va = calculate and then process a variant-rich tiling array across -s sites (results written to hapxmlogvar.txt). This
+     option acts after -u or -ta or default processing of all microhaplotype ranges discovered. Use with -u or -ta is
+     not normal, but will work.
+     
 
 Examples: hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
             -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
