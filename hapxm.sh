@@ -282,7 +282,7 @@ echo "$report" >> "$log";
 #save the variable tiling array in -u userrange format when $debug==YES 
 if [[ "$vartarry" == "YES" ]];
 then logv="$outfol"/hapxmlogvar.txt;
-  grep -v^'#' "$log" > "$logv"; #add common header from hapxmlog.txt
+  grep -v ^'#' "$log" > "$logv"; #add common header from hapxmlog.txt
   echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$logv"; #add header for output table to log
 
   a=$(grep ^'#' "$log" | awk -F' ' '$5>0{print $0}' | tail -n +2); #extract all lines with at least one mh called
