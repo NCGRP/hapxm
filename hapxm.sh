@@ -345,7 +345,7 @@ then logv="$outfol"/hapxmlogvar.txt;
     done;)
     
   #report to log
-  zz=$(echo "$cc"$'\n'"$dd" | sort -t' ' -k2,2n -k3,3n);
+  zz=$(echo "$cc"$'\n'"$dd" | sort -t' ' -k2,2n -k3,3n | awk 'NF');
   echo "$zz" >> "$logv";
 
   #compute an input file for -u userrange if requested
