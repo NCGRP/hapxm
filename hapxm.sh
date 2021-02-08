@@ -126,7 +126,7 @@ keepsingl=NO;
 useuserranges=NO;
 suppar=""; #suppress parallel contig extraction, default is allow GNU parallel --jobs equal to max, -sp switch will set $suppar to --jobs=1 for all parallel statements
 tilearry=NO;
-vartarray=NO;
+vartarry=NO;
 
 #acquire command line variables
 POSITIONAL=()
@@ -227,7 +227,7 @@ if [[ "$useuserranges" == "YES" ]]; then echo "User-defined ranges: $userrangefi
 echo "Keep singletons: $keepsingl" >> "$log";
 echo "Debug on: $debug" >> "$log";
 echo "Process short tiling array: $tilearry" >> "$log";
-echo "Process variable tiling array: $vartarry" >> "$log";
+echo "Process variant-rich tiling array: $vartarry" >> "$log";
 echo >> "$log";
 
 #calculate ranges of microhaploblocks at contigname:site-range
@@ -280,7 +280,7 @@ echo "$report" >> "$log";
 #if user has elected to calculate and process a variable tiling array (-va), extract those from hapxmlog.txt,
 #identify mhs belonging to the variable tiling array and save to hapxmlogvar.txt
 #save the variable tiling array in -u userrange format when $debug==YES 
-if [[ "$vartarray" == "YES" ]];
+if [[ "$vartarry" == "YES" ]];
 then logv="$outfol"/hapxmlogvar.txt;
   grep -v^'#' "$log" > "$logv"; #add common header from hapxmlog.txt
   echo "#contig mhstart mhend mhlength numseq numalleles counts freqs alleleseqs" >> "$logv"; #add header for output table to log
@@ -358,7 +358,7 @@ then logv="$outfol"/hapxmlogvar.txt;
                 done;)
     echo "$mhends4" > "$pd"/mhendsvar.txt;
   fi; 
-fi; #vartarray
+fi; #vartarry
 
 
 
