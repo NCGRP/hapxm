@@ -30,7 +30,7 @@ userrange = path to a file containing user-defined microhaploblock ranges of the
          51jcf7180007742276 11493 11493 11491 11500 10
 
 -db = debugging mode, save some internal data structures as files (may produce a lot of files).
-     Debug output files 'mhends[sorted,tiled].txt' are proper format for input using -u userrange
+     Debug output files 'mhends[var,sorted,tiled].txt' are proper format for input using -u userrange
 -ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)
 -sp = suppress parallel processing (sets GNU parallel --jobs=1)
 -ta = calculate and then process a short tiling array across -s sites (suppressed by -u userrange)
