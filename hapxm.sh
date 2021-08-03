@@ -113,6 +113,14 @@ myevalmicrohaps() {
 }
 export -f myevalmicrohaps;
 
+
+#myp2() is used to rapidly collect full hapxmlog.txt output line for each mh with a unique start point
+myp2() {
+       i=$1;
+       awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp;
+}
+export -f myp2;
+  
 ### END SUBROUTINES ###
 
 
@@ -293,14 +301,15 @@ then logv="$outfol"/hapxmlogvar.txt;
   d=$(grep ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhstart with only one mh
   
   #collect full hapxmlog.txt output line for each mh with a unique start point
-  dd=$(for i in $d;
-         do awk -F' ' -v i=$i '$2==i{print $0}' <<<"$a";
-         done;)
-         
+  echo "$a" > "$outfol"/a.tmp; #save a temporary copy of large variable $a
+  export outfol;
+  dd=$(echo "$d"| parallel --env outfol myp2);
+  dd=$(echo "$dd" | sort -t' ' -k2,2n); #sort numeric on start point
+
   #for mhs with the same mhstart, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
   #if tie use max length ($4, maxlength), if tie choose at random
   cc=$(for i in $c;
-    do e=$(awk -F' ' -v i=$i '$2==i{print $0}' <<<"$a" | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
+    do e=$(awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
       
       g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
       j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
@@ -357,7 +366,10 @@ then logv="$outfol"/hapxmlogvar.txt;
                   awk -F' ' -v k="$k" -v l="$l" '$4==k && $5==l{print $0}' <<<"$mhends1"; #echo the line corresponding to the the mh range retained in the variable tiling array
                 done;)
     echo "$mhends4" > "$pd"/mhendsvar.txt;
-  fi; 
+  fi;
+  
+  #clean up
+    rm "$outfol"/a.tmp; #remove temporary copy of large variable $a
 fi; #vartarry
 
 
