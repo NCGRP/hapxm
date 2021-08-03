@@ -113,13 +113,57 @@ myevalmicrohaps() {
 }
 export -f myevalmicrohaps;
 
-
-#myp2() is used to rapidly collect full hapxmlog.txt output line for each mh with a unique start point
-myp2() {
+#mydd1() is used to rapidly collect full hapxmlog.txt output line for each mh with a unique start point, store it in $dd1
+mydd1() {
        i=$1;
        awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp;
 }
-export -f myp2;
+export -f mydd1;
+
+#mydd2() is used to rapidly collect full hapxmlog.txt output line for each mh with a unique end point, store it in $dd2
+mydd2() {
+       i=$1;
+       awk -F' ' -v i=$i '$3==i{print $0}' "$outfol"/z.tmp;
+}
+export -f mydd2;
+
+#mycc1(): for mhs with the same mhstart, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
+#if tie use max length ($4, maxlength), if tie choose at random
+mycc1() {
+        i=$1;
+        e=$(awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
+      
+        g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
+        j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
+        k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
+        l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
+        h=$(awk -F' ' -v i=$i -v j=$j -v k=$k -v l=$l '$2==i && $4==j && $5==k && $6==l{print $0}' <<<"$e"); #for current mhstart, collect lines that have identical fields 4-6 as top entry
+
+        if (( $(wc -l <<<"$h") > 1 ));
+        then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
+        else echo "$h";
+        fi;     
+}
+export -f mycc1;
+    
+#mycc2(): for mhs with the same mhend, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
+#if tie use max length ($4, maxlength), if tie choose at random
+mycc2() {
+        i=$1;
+        e=$(awk -F' ' -v i=$i '$3==i{print $0}' "$outfol"/z.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhend
+      
+        g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
+        j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
+        k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
+        l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
+        h=$(awk -F' ' -v i=$i -v j=$j -v k=$k -v l=$l '$3==i && $4==j && $5==k && $6==l{print $0}' "$outfol"/z.tmp); #for current mhend, collect lines that have identical fields 4-6 as top entry
+
+        if (( $(wc -l <<<"$h") > 1 ));
+        then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
+        else echo "$h";
+        fi;     
+}
+export -f mycc2;
   
 ### END SUBROUTINES ###
 
@@ -303,58 +347,65 @@ then logv="$outfol"/hapxmlogvar.txt;
   #collect full hapxmlog.txt output line for each mh with a unique start point
   echo "$a" > "$outfol"/a.tmp; #save a temporary copy of large variable $a
   export outfol;
-  dd=$(echo "$d"| parallel --env outfol myp2);
-  dd=$(echo "$dd" | sort -t' ' -k2,2n); #sort numeric on start point
+  dd1=$(echo "$d" | parallel --env outfol mydd1);
+  dd1=$(echo "$dd1" | sort -t' ' -k2,2n); #sort numeric on start point
 
   #for mhs with the same mhstart, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
   #if tie use max length ($4, maxlength), if tie choose at random
-  cc=$(for i in $c;
-    do e=$(awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
-      
-      g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
-      j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
-      k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
-      l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
-      h=$(awk -F' ' -v j=$j -v k=$k -v l=$l '$4==j && $5==k && $6==l{print $0}' <<<"$a"); #collect full hapxmlog.txt output line(s) matching fields 4-6 for top entry
+#  cc1=$(for i in $c;
+#    do e=$(awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
+#      
+#      g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
+#      j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
+#      k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
+#      l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
+#      h=$(awk -F' ' -v j=$j -v k=$k -v l=$l '$4==j && $5==k && $6==l{print $0}' "$outfol"/a.tmp); #collect full hapxmlog.txt output line(s) matching fields 4-6 for top entry
+#
+#      if (( $(wc -l <<<"$h") > 1 ));
+#      then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
+#      else echo "$h";
+#      fi;     
+#    done;)
 
-      if (( $(wc -l <<<"$h") > 1 ));
-      then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
-      else echo "$h";
-      fi;     
-    done;)
-    
-  z=$(echo "$cc"$'\n'"$dd" | sort -t' ' -k2,2n -k3,3n); #transfer lines filtered for mhstart to starting variable
+  cc1=$(echo "$c" | parallel --env outfol mycc1);
 
+  z=$(echo "$cc1"$'\n'"$dd1" | sort -t' ' -k2,2n -k3,3n); #transfer lines filtered for mhstart to starting variable
+  echo "$z" > "$outfol"/z.tmp; #save a temporary copy of large variable $z
 
   #starting with mhs with unique mhstart points, filter to retain only one mh per mhend point
-  b=$(cut -d' ' -f3 <<<"$z" | sort -n | uniq -c | sed 's/^ *//'); #count the number of mhs per mhend point
-  c=$(grep -v ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhend with multiple mhs
-  d=$(grep ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhend with only one mh
+  b2=$(cut -d' ' -f3 <<<"$z" | sort -n | uniq -c | sed 's/^ *//'); #count the number of mhs per mhend point
+  c2=$(grep -v ^"1 " <<<"$b2" | cut -d' ' -f2);  #find mhend with multiple mhs
+  d2=$(grep ^"1 " <<<"$b2" | cut -d' ' -f2);  #find mhend with only one mh
   
   #collect full hapxmlog.txt output line for each mh with a unique end point
-  dd=$(for i in $d;
-         do awk -F' ' -v i=$i '$3==i{print $0}' <<<"$z";
-         done;)
+  dd2=$(echo "$d2" | parallel --env outfol mydd2);
+  dd2=$(echo "$dd2" | sort -t' ' -k2,2n); #sort numeric on start point
+  
+#  dd2=$(for i in $d;
+#         do awk -F' ' -v i=$i '$3==i{print $0}' <<<"$z";
+#         done;)
          
   #for mhs with the same mhend, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
   #if tie use max length ($4, maxlength), if tie choose at random
-  cc=$(for i in $c;
-    do e=$(awk -F' ' -v i=$i '$3==i{print $0}' <<<"$z" | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhend
-      
-      g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
-      j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
-      k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
-      l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
-      h=$(awk -F' ' -v j=$j -v k=$k -v l=$l '$4==j && $5==k && $6==l{print $0}' <<<"$z"); #collect full hapxmlog.txt output line(s) matching fields 4-6 for top entry
+#  cc2=$(for i in $c2;
+#    do e=$(awk -F' ' -v i=$i '$3==i{print $0}' "$outfol"/z.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhend
+#      
+#      g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
+#      j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
+#      k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
+#      l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
+#      h=$(awk -F' ' -v j=$j -v k=$k -v l=$l '$4==j && $5==k && $6==l{print $0}' "$outfol"/z.tmp); #collect full hapxmlog.txt output line(s) matching fields 4-6 for top entry
+#
+#      if (( $(wc -l <<<"$h") > 1 ));
+#      then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
+#      else echo "$h";
+#      fi;     
+#    done;)
 
-      if (( $(wc -l <<<"$h") > 1 ));
-      then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
-      else echo "$h";
-      fi;     
-    done;)
-    
+  cc2=$(echo "$c2" | parallel --env outfol mycc2);
+
   #report to log
-  zz=$(echo "$cc"$'\n'"$dd" | sort -t' ' -k2,2n -k3,3n | awk 'NF');
+  zz=$(echo "$cc2"$'\n'"$dd2" | sort -t' ' -k2,2n -k3,3n | awk 'NF');
   echo "$zz" >> "$logv";
 
   #compute an input file for -u userrange if requested
@@ -370,6 +421,7 @@ then logv="$outfol"/hapxmlogvar.txt;
   
   #clean up
     rm "$outfol"/a.tmp; #remove temporary copy of large variable $a
+    rm "$outfol"/z.tmp; #remove temporary copy of large variable $z
 fi; #vartarry
 
 
