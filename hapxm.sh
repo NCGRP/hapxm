@@ -156,7 +156,7 @@ mycc2() {
         j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
         k=$(cut -d' ' -f2 <<<"$g"); #value $5 numseq
         l=$(cut -d' ' -f3 <<<"$g"); #value $6 numalleles
-        h=$(awk -F' ' -v i=$i -v j=$j -v k=$k -v l=$l '$3==i && $4==j && $5==k && $6==l{print $0}' "$e"); #for current mhend, collect lines that have identical fields 4-6 as top entry
+        h=$(awk -F' ' -v i=$i -v j=$j -v k=$k -v l=$l '$3==i && $4==j && $5==k && $6==l{print $0}' <<<"$e"); #for current mhend, collect lines that have identical fields 4-6 as top entry
 
         if (( $(wc -l <<<"$h") > 1 ));
         then shuf <<<"$h" | head -1; #if $h has more than one line choose one line randomly, echo it
@@ -308,10 +308,6 @@ mhends3=$(sort -t' ' -k1,1 -k4,4n <<<"$mhends3" | sort -u -t' ' -k1,1 -k4,4n -k5
 #if user has supplied microhaploblock ranges by invoking the -u option, substitute those
 #if user has elected to only process the short tiling array (-ta) use $mhends3
 #otherwise process all unique mhs
-#for $mhends3 here
-#if [[ "$useuserranges" == "YES" ]];
-#then mhends3="$u";
-#fi;
 if [[ "$useuserranges" == "YES" ]];
 then mhendsin="$u";
 elif [[ "$tilearry" == "YES" ]];
