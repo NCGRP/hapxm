@@ -447,14 +447,14 @@ then logv="$outfol"/hapxmlogvar.txt;
     
     echo "$mhends4" > "$pd"/mhendsvar.txt;
   fi;
-  
-  #clean up
-    rm "$pd"/mhends1.tmp;
-    rm "$pd"/mhends2.tmp;
-    rm "$pd"/a.tmp; #remove temporary copy of large variable $a
-    rm "$pd"/z.tmp; #remove temporary copy of large variable $z
 
 fi; #vartarry
+
+#clean up, use rm -f to not raise error if file does not exist
+rm -f "$pd"/mhends1.tmp;
+rm -f "$pd"/mhends2.tmp;
+rm -f "$pd"/a.tmp; #remove temporary copy of large variable $a
+rm -f "$pd"/z.tmp; #remove temporary copy of large variable $z
 
 
 
