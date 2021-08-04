@@ -180,6 +180,15 @@ mycc2() {
 }
 export -f mycc2;
   
+#compute an input file for -u userrange if requested
+mymhends4() {
+            i=$1;
+            k=$(cut -d: -f1 <<<"$i"); #mhstart
+            l=$(cut -d: -f2 <<<"$i"); #mhend
+            awk -F' ' -v k="$k" -v l="$l" '$4==k && $5==l{print $0}' "$pd"/mhends1.tmp; #echo the line corresponding to the the mh range retained in the variable tiling array
+}
+export -f mymhends4;
+
 ### END SUBROUTINES ###
 
 
@@ -326,10 +335,6 @@ mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un); #unique microhaploblock range 
 mhends3=$(echo "$mhrend" | parallel --env pd mymhends3);
 mhends3=$(sort -t' ' -k1,1 -k4,4n <<<"$mhends3" | sort -u -t' ' -k1,1 -k4,4n -k5,5n); #sort $mhends3 nicely
 
-#clean up;
-rm "$pd"/mhends1.tmp;
-rm "$pd"/mhends2.tmp;
-
 
 #if user has supplied microhaploblock ranges by invoking the -u option, substitute those
 #if user has elected to only process the short tiling array (-ta) use $mhends3
@@ -432,17 +437,23 @@ then logv="$outfol"/hapxmlogvar.txt;
   #compute an input file for -u userrange if requested
   if [[ "$debug" == "YES" ]];
   then j=$(cut -d' ' -f2-3 <<<"$zz" | tr ' ' ':');#get list of mh ranges for variable tiling array
-    mhends4=$(for i in $j;
-                do k=$(cut -d: -f1 <<<"$i"); #mhstart
-                  l=$(cut -d: -f2 <<<"$i"); #mhend
-                  awk -F' ' -v k="$k" -v l="$l" '$4==k && $5==l{print $0}' <<<"$mhends1"; #echo the line corresponding to the the mh range retained in the variable tiling array
-                done;)
+    mhends4=$(echo "$j" | parallel --env pd mymhends4);
+    
+    #    mhends4=$(for i in $j;
+#                do k=$(cut -d: -f1 <<<"$i"); #mhstart
+#                  l=$(cut -d: -f2 <<<"$i"); #mhend
+#                  awk -F' ' -v k="$k" -v l="$l" '$4==k && $5==l{print $0}' <<<"$mhends1"; #echo the line corresponding to the the mh range retained in the variable tiling array
+#                done;)
+    
     echo "$mhends4" > "$pd"/mhendsvar.txt;
   fi;
   
   #clean up
-    rm "$outfol"/a.tmp; #remove temporary copy of large variable $a
-    rm "$outfol"/z.tmp; #remove temporary copy of large variable $z
+    rm "$pd"/mhends1.tmp;
+    rm "$pd"/mhends2.tmp;
+    rm "$pd"/a.tmp; #remove temporary copy of large variable $a
+    rm "$pd"/z.tmp; #remove temporary copy of large variable $z
+
 fi; #vartarry
 
 
