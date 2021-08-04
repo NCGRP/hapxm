@@ -73,6 +73,21 @@ mygetends() {
 }
 export -f mygetends;
 
+#extract longest haploblocks across the tiling array
+#for microhaploblock ranges with the same start point, keep the longest one (which is the last with current sort order)
+mymhends2() {
+            i=$1;
+            awk -F' ' -v i=$i '$4==i{print $0}' "$pd"/mhends1.tmp | sort -t' ' -k5,5n | tail -1;
+}
+export -f mymhends2;
+
+#for microhaploblock ranges with the same end point, keep the longest one (which is the first one with current sort order)
+mymhends3() {
+            i=$1;
+            awk -F' ' -v i=$i '$5==i{print $0}' "$pd"/mhends2.tmp | sort -t' ' -k4,4n | head -1;
+}
+export -f mymhends3;
+
 #myevalmicrohaps() takes the accounting of microhaplotype spans from mygetends() and calculates
 #the number of alleles at each microhaplotype locus
 myevalmicrohaps() {
@@ -116,14 +131,14 @@ export -f myevalmicrohaps;
 #mydd1() is used to rapidly collect full hapxmlog.txt output line for each mh with a unique start point, store it in $dd1
 mydd1() {
        i=$1;
-       awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp;
+       awk -F' ' -v i=$i '$2==i{print $0}' "$pd"/a.tmp;
 }
 export -f mydd1;
 
 #mydd2() is used to rapidly collect full hapxmlog.txt output line for each mh with a unique end point, store it in $dd2
 mydd2() {
        i=$1;
-       awk -F' ' -v i=$i '$3==i{print $0}' "$outfol"/z.tmp;
+       awk -F' ' -v i=$i '$3==i{print $0}' "$pd"/z.tmp;
 }
 export -f mydd2;
 
@@ -131,7 +146,7 @@ export -f mydd2;
 #if tie use max length ($4, maxlength), if tie choose at random
 mycc1() {
         i=$1;
-        e=$(awk -F' ' -v i=$i '$2==i{print $0}' "$outfol"/a.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
+        e=$(awk -F' ' -v i=$i '$2==i{print $0}' "$pd"/a.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhstart
       
         g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
         j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
@@ -150,7 +165,7 @@ export -f mycc1;
 #if tie use max length ($4, maxlength), if tie choose at random
 mycc2() {
         i=$1;
-        e=$(awk -F' ' -v i=$i '$3==i{print $0}' "$outfol"/z.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhend
+        e=$(awk -F' ' -v i=$i '$3==i{print $0}' "$pd"/z.tmp | sort -t' ' -k6,6nr -k5,5nr -k4,4nr); #collect and sort full hapxmlog.txt output lines for current mhend
       
         g=$(cut -d' ' -f4-6 <<<"$e" | head -1 | sed 's/^ *//'); #get fields 4-6 for the top entry
         j=$(cut -d' ' -f1 <<<"$g"); #value $4 mhlength
@@ -288,21 +303,32 @@ if [[ "$debug" == "YES" ]]; then echo "$mhends" > "$pd"/mhends.txt; fi;
 #sort on contig X microhaploblock range left end, then on unique microhaploblock ranges
 mhends1=$(sed 's/[:-]/ /g' <<<"$mhends" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n);
 if [[ "$debug" == "YES" ]]; then echo "$mhends1" > "$pd"/mhendssorted.txt; fi;
+echo "$mhends1" > "$pd"/mhends1.tmp; #create a temp file for faster parallel access
 
 #extract longest haploblocks across the tiling array
 #for microhaploblock ranges with the same start point, keep the longest one (which is the last with current sort order)
-mhrstart=$(cut -d' ' -f4 <<<"$mhends1" | sort -un | tr '\n' ' '); #unique microhaploblock range start
-mhends2=$(for i in $mhrstart;
-  do awk -F' ' -v i=$i '$4==i{print $0}' <<<"$mhends1" | sort -t' ' -k5,5n | tail -1;
-  done;)
+#mhrstart=$(cut -d' ' -f4 <<<"$mhends1" | sort -un | tr '\n' ' '); #unique microhaploblock range start
+#mhends2=$(for i in $mhrstart;
+#  do awk -F' ' -v i=$i '$4==i{print $0}' <<<"$mhends1" | sort -t' ' -k5,5n | tail -1;
+#  done;)
+mhrstart=$(cut -d' ' -f4 <<<"$mhends1" | sort -un); #unique microhaploblock range start
+mhends2=$(echo "$mhrstart" | parallel --env pd mymhends2);
+mhends2=$(echo "$mhends2" | sort -t' ' -k1,1 -k4,4n | sort -u -t' ' -k1,1 -k4,4n -k5,5n);
+echo "$mhends2" >  "$pd"/mhends2.tmp; #create a temp file for faster parallel access
 
 #for microhaploblock ranges with the same end point, keep the longest one (which is the first one with current sort order)
-mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un | tr '\n' ' '); #unique microhaploblock range end
-mhends3=$(for i in $mhrend;
-  do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | sort -t' ' -k4,4n | head -1;
-  done;)
+#mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un | tr '\n' ' '); #unique microhaploblock range end
+#mhends3=$(for i in $mhrend;
+#  do awk -F' ' -v i=$i '$5==i{print $0}' <<<"$mhends2" | sort -t' ' -k4,4n | head -1;
+#  done;)
+#mhends3=$(sort -t' ' -k1,1 -k4,4n <<<"$mhends3" | sort -u -t' ' -k1,1 -k4,4n -k5,5n); #sort $mhends3 nicely
+mhrend=$(cut -d' ' -f5 <<<"$mhends2" | sort -un); #unique microhaploblock range end
+mhends3=$(echo "$mhrend" | parallel --env pd mymhends3);
 mhends3=$(sort -t' ' -k1,1 -k4,4n <<<"$mhends3" | sort -u -t' ' -k1,1 -k4,4n -k5,5n); #sort $mhends3 nicely
 
+#clean up;
+rm "$pd"/mhends1.tmp;
+rm "$pd"/mhends2.tmp;
 
 
 #if user has supplied microhaploblock ranges by invoking the -u option, substitute those
@@ -341,9 +367,8 @@ then logv="$outfol"/hapxmlogvar.txt;
   d=$(grep ^"1 " <<<"$b" | cut -d' ' -f2);  #find mhstart with only one mh
   
   #collect full hapxmlog.txt output line for each mh with a unique start point
-  echo "$a" > "$outfol"/a.tmp; #save a temporary copy of large variable $a
-  export outfol;
-  dd1=$(echo "$d" | parallel --env outfol mydd1);
+  echo "$a" > "$pd"/a.tmp; #save a temporary copy of large variable $a
+  dd1=$(echo "$d" | parallel --env pd mydd1);
   dd1=$(echo "$dd1" | sort -t' ' -k2,2n); #sort numeric on start point
 
   #for mhs with the same mhstart, find the mh with the most variants ($6 numalleles), if tie use max depth ($5, numseq),
@@ -363,10 +388,10 @@ then logv="$outfol"/hapxmlogvar.txt;
 #      fi;     
 #    done;)
 
-  cc1=$(echo "$c" | parallel --env outfol mycc1);
+  cc1=$(echo "$c" | parallel --env pd mycc1);
 
   z=$(echo "$cc1"$'\n'"$dd1" | sort -t' ' -k2,2n -k3,3n); #transfer lines filtered for mhstart to starting variable
-  echo "$z" > "$outfol"/z.tmp; #save a temporary copy of large variable $z
+  echo "$z" > "$pd"/z.tmp; #save a temporary copy of large variable $z
 
   #starting with mhs with unique mhstart points, filter to retain only one mh per mhend point
   b2=$(cut -d' ' -f3 <<<"$z" | sort -n | uniq -c | sed 's/^ *//'); #count the number of mhs per mhend point
@@ -374,7 +399,7 @@ then logv="$outfol"/hapxmlogvar.txt;
   d2=$(grep ^"1 " <<<"$b2" | cut -d' ' -f2);  #find mhend with only one mh
   
   #collect full hapxmlog.txt output line for each mh with a unique end point
-  dd2=$(echo "$d2" | parallel --env outfol mydd2);
+  dd2=$(echo "$d2" | parallel --env pd mydd2);
   dd2=$(echo "$dd2" | sort -t' ' -k2,2n); #sort numeric on start point
   
 #  dd2=$(for i in $d;
@@ -398,7 +423,7 @@ then logv="$outfol"/hapxmlogvar.txt;
 #      fi;     
 #    done;)
 
-  cc2=$(echo "$c2" | parallel --env outfol mycc2);
+  cc2=$(echo "$c2" | parallel --env pd mycc2);
 
   #report to log
   zz=$(echo "$cc2"$'\n'"$dd2" | sort -t' ' -k2,2n -k3,3n | awk 'NF');
