@@ -122,7 +122,7 @@ myevalmicrohaps() {
                     numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
                     mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
                     freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
-                    alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
+                    alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '[:lower:]' '[:upper:]' | tr '\n' ':' | sed 's/:$//'); #sequences of each allele, convert all characters to upper case
                   fi;
                   echo '#'"$contig $mhstart $mhend $col1 $numseq $numalleles $mhcounts $freqs $alleleseqs"; #report result to parallel statement
 }
