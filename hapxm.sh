@@ -99,10 +99,10 @@ myevalmicrohaps() {
                   mhstart=$(cut -d' ' -f4 <<<"$i" | cut -d'-' -f1); #start position of microhaploblock 
                   mhend=$(cut -d' ' -f5 <<<"$i" | cut -d'-' -f1); #end position of microhaploblock 
                   
-                  #use samtools tview to display microhaplotypes
+                  #use samtools tview to display microhaplotypes, convert all characters to upper case
                   mh=$(export COLUMNS="$col"; samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
                       tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
-                      sort | uniq -c | sed 's/^ *//');                  
+                      tr '[:lower:]' '[:upper:]' | sort | uniq -c | sed 's/^ *//');                  
                   #mh=$(export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
                   #    tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
                   #    sort | uniq -c | sed 's/^ *//');                  
@@ -122,7 +122,7 @@ myevalmicrohaps() {
                     numalleles=$(wc -l <<<"$mh"); #number of microhaplotype alleles
                     mhcounts=$(cut -d' ' -f1 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #counts of each allele
                     freqs=$(cut -d' ' -f1 <<<"$mh" | awk -v numseq=$numseq '{print $1/numseq}' | tr '\n' ':' | sed 's/:$//'); #frequencies of each allele
-                    alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '[:lower:]' '[:upper:]' | tr '\n' ':' | sed 's/:$//'); #sequences of each allele, convert all characters to upper case
+                    alleleseqs=$(cut -d' ' -f2 <<<"$mh" | tr '\n' ':' | sed 's/:$//'); #sequences of each allele
                   fi;
                   echo '#'"$contig $mhstart $mhend $col1 $numseq $numalleles $mhcounts $freqs $alleleseqs"; #report result to parallel statement
 }
