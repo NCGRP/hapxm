@@ -3,21 +3,6 @@
 # Usage: see README.txt
 
 ##SUBROUTINES##
-#myparsecigar() returns the distance from the contig:site-range right end to the each mapped
-#paired read right end
-#myparsecigar() {
-#               j=$1; #pos:cigar like 11423:4M1D48M2D7M1D38M1D38M72S
-#               pos=$(cut -d: -f1 <<<"$j"); #position of first aligned base
-#               cig=$(cut -d: -f2 <<<"$j"); #cigar string
-#               cigops=$(sed 's/[0-9]*//g' <<<"$cig" | grep -o . | sort -u | tr -d '\n'); #gather all cigar string 'operators'
-#               if [[ "$cigops" == *"P"* ]];
-#               then echo "CIGAR string $cig contains invalid character P, skipping";
-#                 return; #skip the current contig:site-range
-#               else sed 's:\([DIMSX=]\):\1\n:g' <<<"$cig" | sed '/^$/d' | grep -v "I" | sed 's/[DIMSX=]//' | awk '{s+=$1}END{print s}';
-#               fi;
-#}
-#export -f myparsecigar;
-#
 #mygetends() calculates the span of bases around a contig:site-range that can be treated as a microhaplotype
 #this amounts to the sequence span that is alignable across (i.e. "common to") all paired read
 #haplotypes extending left and right from the contig:site-range
@@ -27,11 +12,8 @@ mygetends() {
               lesr=$(cut -d: -f2 <<<"$i" | cut -d'-' -f1); #left end site range
               resr=$(cut -d: -f2 <<<"$i" | cut -d'-' -f2); #right end site range
               
-              #f=$(samtools view -q 1 Hs1pro1l1.finalaln.bam 51jcf7180007742276:"$i"-"$i" | cut -d$'\t' -f4 | sort -nr | head -1);
-              
               #get LE and cigar string for each sequence
               g=$(samtools view -F "$stF" -q "$stq" "$bam" "$i" | cut -d$'\t' -f4,6); #-F 2048 excludes supplementary alignments
-              #g=$(/share/apps/samtools view -F "$stF" -q "$stq" "$bam" "$i" | cut -d$'\t' -f4,6); #-F 2048 excludes supplementary alignments
               if [[ "$g" == "" ]]; then return; fi; #bail out if there are no aligned reads at the position
               
               #calculate closest ends to left side of site range
@@ -39,7 +21,6 @@ mygetends() {
               led=$(( $lesr - $le )); #distance to closest LE
               
               #parse cigar string for right end positions
-              #allres=$(echo "$g" | tr '\t' ':' | parallel --env myparsecigar myparsecigar); #variable to hold all right end positions
               allres="";
               for j in $(echo "$g" | tr '\t' ':' | tr '\n' ' ');
                 do lpos=$(cut -d: -f1 <<<"$j"); #position of first aligned base
@@ -103,9 +84,6 @@ myevalmicrohaps() {
                   mh=$(export COLUMNS="$col"; samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
                       tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
                       tr '[:lower:]' '[:upper:]' | sort | uniq -c | sed 's/^ *//');                  
-                  #mh=$(export COLUMNS="$col"; /share/apps/samtools tview -dT -p "$contig":"$mhstart" "$bam" | \
-                  #    tail -n +4 | grep -v " " | awk -F' ' -v col1=$col1 '{print substr($1,1,col1)}' | \
-                  #    sort | uniq -c | sed 's/^ *//');                  
                   if [[ "$keepsingl" == NO ]];
                   then mh=$(grep -v ^"1 " <<<"$mh");
                   fi;
