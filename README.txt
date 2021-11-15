@@ -11,7 +11,7 @@ Requirements (in path):
 Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta -va] -s sites
 where,
 bam = path to bam file of reads aligned to ref [required]
-out = name of directory for output files (not a path) will be created in current directory
+out = name of directory for output files (not a path), will be created in current directory
 sites = path to file containing genomic positions to use [required]
      Provide a line delimited list of the form contigname:site-range like:
          jcf7180008454378:303-303
