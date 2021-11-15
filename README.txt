@@ -11,12 +11,12 @@ Requirements (in path):
 Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta -va] -s sites
 where,
 bam = path to bam file of reads aligned to ref [required]
-out = name of directory for output files, not a path, will be created in current directory
+out = name of directory for output files (not a path) will be created in current directory
 sites = path to file containing genomic positions to use [required]
      Provide a line delimited list of the form contigname:site-range like:
          jcf7180008454378:303-303
          jcf7180008454378:495-495
-     which specifies bp 303 of the contig named "jcf7180008454378" and bps 495-495 of contig "jcf7180008454378:".
+     which specifies bp 303 of the contig named "jcf7180008454378" and bp 495-495 of contig "jcf7180008454378:".
      For now, hapxm has only been tested to handle single bp "ranges" within 1 contig.
 exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]
 qual = Samtools view -q option (minimum mapping quality of included reads) [default=1, don't use 0 use >=1 instead, 0 is poorly defined]
@@ -39,26 +39,34 @@ userrange = path to a file containing user-defined microhaploblock ranges of the
      not normal, but will work.
      
 
-Examples: hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+Examples: hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
             -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+	Runs hapxm.sh in -db mode, saving output to folder named 'hxm1'. Instead of an input file for -s, uses
+	process substitution <(...) syntax to generate input text like:
+		 51jcf7180007742276:9889-9889
+		 51jcf7180007742276:9890-9890
+	
 
-hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
             -o hxm1singl -db -ks -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 
 for i in $(seq 50 1 55);
-  do hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
+  do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
             -o hxm"$i" -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
   done;
   
 for i in $(seq 50 1 55);
-  do hapxm.sh -b /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
-            -o hxm"$i"onhxm1 -db -u /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem/hxm1/mhendstiled.txt \
+  do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
+            -o hxm"$i"onhxm1 -db -u /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/hxm1/mhendstiled.txt \
             -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
   done;
+	Runs hapxm.sh in db mode on a set of bam input files, distinguished by integer values [50-55]. Uses the "tiled"
+	path through microhaplotype loci calculated by a previous run of hapxm.sh -db and saved as file mhendstiled.txt.
+	The purpose is to narrow the number of microhaplotype loci considered to a manageable or biologically relevant
+	fraction.
 
 
-
-#Postprocessing
+#Postprocessing of output from second example above, see also https://github.com/NCGRP/mb1suppl
 #determine microhaploblock major alleles that differ between pools
 rhead=$(grep ^"#" hxm50onhxm1/hapxmlog.txt | cut -d' ' -f1-4);
 head=$(head -1 <<<"$rhead");
@@ -192,7 +200,7 @@ myga() {
 export -f myga;
 
 #gather list of microhaplotype loci
-cd /share/space/reevesp/patellifolia/hapxtest/hapxsummary/bwamem;
+cd /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem;
 pd=$(pwd); export pd;
 a=$(grep ^# hxm5*onhxm1/hapxmlog.txt | grep -v "mhstart mhend" | cut -d' ' -f2,3 | sort -t' ' -k1,1n | uniq);
 b=$(echo "$a" | parallel --keep-order --env pd --env myga myga;)
