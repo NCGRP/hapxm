@@ -37,34 +37,33 @@ userrange = path to a file containing user-defined microhaploblock ranges of the
 -va = calculate and then process a variant-rich tiling array across -s sites (results written to hapxmlogvar.txt). This
      option acts after -u or -ta or default processing of all microhaplotype ranges discovered. Use with -u or -ta is
      not normal, but will work.
-     
-
-Examples: hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
-            -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+#  
+Examples:
+    hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+             -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 	Runs hapxm.sh in -db mode, saving output to folder named 'hxm1'. Instead of an input file for -s, uses
 	process substitution <(...) syntax to generate input text like:
 		 51jcf7180007742276:9889-9889
 		 51jcf7180007742276:9890-9890
 	
+    hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+             -o hxm1singl -db -ks -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 
-hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
-            -o hxm1singl -db -ks -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+    for i in $(seq 50 1 55);
+      do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
+                  -o hxm"$i" -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+      done;
 
-for i in $(seq 50 1 55);
-  do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
-            -o hxm"$i" -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
-  done;
-  
-for i in $(seq 50 1 55);
-  do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
-            -o hxm"$i"onhxm1 -db -u /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/hxm1/mhendstiled.txt \
-            -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
-  done;
+    for i in $(seq 50 1 55);
+      do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
+                -o hxm"$i"onhxm1 -db -u /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/hxm1/mhendstiled.txt \
+                -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+      done;
 	Runs hapxm.sh in db mode on a set of bam input files, distinguished by integer values [50-55]. Uses the "tiled"
 	path through microhaplotype loci calculated by a previous run of hapxm.sh -db and saved as file mhendstiled.txt.
 	The purpose is to narrow the number of microhaplotype loci considered to a manageable or biologically relevant
 	fraction.
-
+#  
 
 #Postprocessing of output from second example above, see also https://github.com/NCGRP/mb1suppl
 #determine microhaploblock major alleles that differ between pools
