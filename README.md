@@ -13,11 +13,11 @@ where,
 bam = path to bam file of reads aligned to ref [required]   
 out = name of directory for output files (not a path), will be created in current directory   
 sites = path to file containing genomic positions to use [required]   
-     Provide a line delimited list of the form contigname:site-range like:   
-         jcf7180008454378:303-303   
-         jcf7180008454378:495-495   
-     which specifies bp 303 of the contig named "jcf7180008454378" and bp 495-495 of contig "jcf7180008454378:".   
-     For now, hapxm has only been tested to handle single bp "ranges" within 1 contig.   
+     Provide a line delimited list of the form contigname:site-range like: 
+         jcf7180008454378:303-303 
+         jcf7180008454378:495-495 
+     which specifies bp 303 of the contig named "jcf7180008454378" and bp 495-495 of contig "jcf7180008454378:". 
+     For now, hapxm has only been tested to handle single bp "ranges" within 1 contig. 
 exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]   
 qual = Samtools view -q option (minimum mapping quality of included reads) [default=1, don't use 0 use >=1 instead, 0 is poorly defined]   
 mach = path to "machines" file for the gnu parallel command --sshloginfile, forces distribution across nodes   
