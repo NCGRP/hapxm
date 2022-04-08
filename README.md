@@ -8,6 +8,7 @@ Requirements (in path):
 1) samtools (hapxm calls samtools view/tview)
 3) GNU parallel
 
+```
 Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta -va] -s sites
 where,
 bam = path to bam file of reads aligned to ref [required]
@@ -212,3 +213,5 @@ tpm=$(paste -d' ' <(echo "$rh") <(echo "$tp"));
 
 #write result
 echo "$tpm" > AdegenetGenpopImport.txt;
+```
+
