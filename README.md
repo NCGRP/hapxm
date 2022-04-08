@@ -6,74 +6,65 @@ In working folder:
 
 Requirements (in path):
 1) samtools (hapxm calls samtools view/tview)
-2) GNU parallel
+3) GNU parallel
 
-#  
+Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta -va] -s sites
+where,
+bam = path to bam file of reads aligned to ref [required]
+out = name of directory for output files (not a path), will be created in current directory
+sites = path to file containing genomic positions to use [required]
+     Provide a line delimited list of the form contigname:site-range like:
+         jcf7180008454378:303-303
+         jcf7180008454378:495-495
+     which specifies bp 303 of the contig named "jcf7180008454378" and bp 495-495 of contig "jcf7180008454378:".
+     For now, hapxm has only been tested to handle single bp "ranges" within 1 contig.
+exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]
+qual = Samtools view -q option (minimum mapping quality of included reads) [default=1, don't use 0 use >=1 instead, 0 is poorly defined]
+mach = path to "machines" file for the gnu parallel command --sshloginfile, forces distribution across nodes
+userrange = path to a file containing user-defined microhaploblock ranges of the form
+     "contig lesite resite lemh remh mhlength" where 'lesite' is left end of the target range
+     in the reference genome, 'remh' is the right end of the microhaploblock locus, and 'mhlength' is the
+     microhaploblock length (lesite and resite are unused by the algorithm so may be dummy values,
+     see also -db):
+         51jcf7180007742276 11472 11472 11472 11474 3
+         51jcf7180007742276 11493 11493 11491 11500 10
 
-Usage: hapxm -b bam -o out [-F exc] [-q qual] [-ssh mach] [-u userrange] [-db -ks -sp -ta -va] -s sites   
+-db = debugging mode, save some internal data structures as files (may produce a lot of files).
+     Debug output files 'mhends[var,sorted,tiled].txt' are proper format for input using -u userrange
+-ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)
+-sp = suppress parallel processing (sets GNU parallel --jobs=1)
+-ta = calculate and then process a short tiling array across -s sites (suppressed by -u userrange)
+-va = calculate and then process a variant-rich tiling array across -s sites (results written to hapxmlogvar.txt). This
+     option acts after -u or -ta or default processing of all microhaplotype ranges discovered. Use with -u or -ta is
+     not normal, but will work.
+     
 
-where,   
-bam = path to bam file of reads aligned to ref [required]   
-out = name of directory for output files (not a path), will be created in current directory   
-sites = path to file containing genomic positions to use [required]   
-     Provide a line delimited list of the form contigname:site-range like:   
-          jcf7180008454378:303-303   
-          jcf7180008454378:495-495   
-     which specifies bp 303 of the contig named "jcf7180008454378" and bp 495-495 of  
-     contig "jcf7180008454378:". For now, hapxm has only been tested to handle single bp  
-     "ranges" within 1 contig.   
-
-exc = integer flag value for Samtools view -F option (properties of reads to exclude) [default=2048, excludes supplementary alignments]   
-qual = Samtools view -q option (minimum mapping quality of included reads) [default=1, don't use 0 use >=1 instead, 0 is poorly defined]   
-mach = path to "machines" file for the gnu parallel command --sshloginfile, forces distribution across nodes   
-userrange = path to a file containing user-defined microhaploblock ranges of the form   
-     "contig lesite resite lemh remh mhlength" where 'lesite' is left end of the target  
-     range in the reference genome, 'remh' is the right end of the microhaploblock locus,  
-     and 'mhlength' is the microhaploblock length (lesite and resite are unused by the  
-     algorithm so may be dummy values, see also -db):   
-          51jcf7180007742276 11472 11472 11472 11474 3   
-          51jcf7180007742276 11493 11493 11491 11500 10   
-
--db = debugging mode, save some internal data structures as files (may produce a lot of files).  
-     Debug output files 'mhends[var,sorted,tiled].txt' are proper format for input using -u userrange  
--ks = keep singletons, default behavior is to ignore microhaplotype singletons (occur in only 1 sequence)  
--sp = suppress parallel processing (sets GNU parallel --jobs=1)  
--ta = calculate and then process a short tiling array across -s sites (suppressed by -u userrange)  
--va = calculate and then process a variant-rich tiling array across -s sites (results written to hapxmlogvar.txt). This  
-     option acts after -u or -ta or default processing of all microhaplotype ranges  
-     discovered. Use with -u or -ta is not normal, but will work.  
-
-#  
-
-Examples:
-
-    hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
-             -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
-     Runs hapxm.sh in -db mode, saving output to folder named 'hxm1'. Instead of an input  
-     file for -s, uses process substitution <(...) syntax to generate input text like:  
-          51jcf7180007742276:9889-9889
-          51jcf7180007742276:9890-9890
+Examples: hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+            -o hxm1 -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+	Runs hapxm.sh in -db mode, saving output to folder named 'hxm1'. Instead of an input file for -s, uses
+	process substitution <(...) syntax to generate input text like:
+		 51jcf7180007742276:9889-9889
+		 51jcf7180007742276:9890-9890
 	
-    hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
-             -o hxm1singl -db -ks -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 
-    for i in $(seq 50 1 55);
-      do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
-                  -o hxm"$i" -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
-      done;
+hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/Hs1pro1l1.finalaln.bam \
+            -o hxm1singl -db -ks -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
 
-    for i in $(seq 50 1 55);
-      do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
-                -o hxm"$i"onhxm1 -db -u /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/hxm1/mhendstiled.txt \
-                -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
-      done;
-     Runs hapxm.sh in db mode on a set of bam input files, distinguished by integer  
-     values [50-55]. Uses the "tiled" path through microhaplotype loci calculated by a  
-     previous run of hapxm.sh -db and saved as file mhendstiled.txt. The purpose is to  
-     narrow the number of microhaplotype loci considered to a manageable or biologically  
-     relevant fraction.
+for i in $(seq 50 1 55);
+  do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
+            -o hxm"$i" -db -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+  done;
+  
+for i in $(seq 50 1 55);
+  do hapxm.sh -b /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/"$i"Hs1pro1l1.finalaln.bam.TMP \
+            -o hxm"$i"onhxm1 -db -u /share/space/user/patellifolia/hapxtest/hapxsummary/bwamem/hxm1/mhendstiled.txt \
+            -s <(for i in $(seq 9889 1 15245); do echo 51jcf7180007742276:"$i"-"$i"; done;)
+  done;
+	Runs hapxm.sh in db mode on a set of bam input files, distinguished by integer values [50-55]. Uses the "tiled"
+	path through microhaplotype loci calculated by a previous run of hapxm.sh -db and saved as file mhendstiled.txt.
+	The purpose is to narrow the number of microhaplotype loci considered to a manageable or biologically relevant
+	fraction.
 
-#  
 
 #Postprocessing of output from second example above, see also https://github.com/NCGRP/mb1suppl
 #determine microhaploblock major alleles that differ between pools
